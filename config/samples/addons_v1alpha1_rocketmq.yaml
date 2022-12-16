@@ -1,0 +1,77 @@
+apiVersion: addons.erda.cloud/v1alpha1
+kind: RocketMQ
+metadata:
+  labels:
+    app.kubernetes.io/name: rocketmq
+    app.kubernetes.io/instance: rocketmq-sample
+    app.kubernetes.io/part-of: rocketmq-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: rocketmq-operator
+  name: rocketmq-sample
+spec:
+  nameServiceSpec:
+    name: rocketmq-namesrv
+    size: 2
+    image: registry.erda.cloud/erda-addons-enterprise/addon-rocketmq:namesrv-4.2.0-1.0.4
+    storageMode: "StorageClass"
+    resources:
+      limits:
+        cpu: "1"
+        ephemeral-storage: 20Gi
+        memory: 2Gi
+      requests:
+        cpu: 50m
+        ephemeral-storage: 1Gi
+        memory: 1Gi
+    env:
+      - name: DICE_ADDON_TYPE
+        value: rocketmq
+    volumeClaimTemplates:
+      - metadata:
+          name: namesrv-log-storage
+        spec:
+          storageClassName: "standard"
+          resources:
+            requests:
+              storage: 20Gi
+          accessModes:
+            - ReadWriteOnce
+  brokerSpec:
+    name: rocketmq-broker
+    size: 1
+    image: registry.erda.cloud/erda-addons-enterprise/addon-rocketmq:broker-4.2.0-1.0.4
+    storageMode: "StorageClass"
+    resources:
+      limits:
+        cpu: "1"
+        ephemeral-storage: 20Gi
+        memory: 2Gi
+      requests:
+        cpu: 50m
+        ephemeral-storage: 1Gi
+        memory: 1Gi
+    env:
+      - name: DICE_ADDON_TYPE
+        value: rocketmq
+    volumeClaimTemplates:
+      - metadata:
+          name: broker-data-storage
+        spec:
+          storageClassName: "standard"
+          resources:
+            requests:
+              storage: 20Gi
+          accessModes:
+            - ReadWriteOnce
+  consoleSpec:
+    name: rocketmq-console
+    image: registry.erda.cloud/erda-addons-enterprise/addon-rocketmq:console-1.0.0-1.0.3
+    resources:
+      limits:
+        cpu: 500m
+        ephemeral-storage: 20Gi
+        memory: 1Gi
+      requests:
+        cpu: 25m
+        ephemeral-storage: 1Gi
+        memory: 512Mi

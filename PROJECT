@@ -1,0 +1,16 @@
+domain: erda.cloud
+layout:
+- go.kubebuilder.io/v4-alpha
+projectName: rocketmq-operator
+repo: erda.cloud/rocketmq
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: erda.cloud
+  group: addons
+  kind: RocketMQ
+  path: erda.cloud/rocketmq/api/v1alpha1
+  version: v1alpha1
+version: "3"

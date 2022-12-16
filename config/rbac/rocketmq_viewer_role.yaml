@@ -1,0 +1,27 @@
+# permissions for end users to view rocketmqs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: rocketmq-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: rocketmq-operator
+    app.kubernetes.io/part-of: rocketmq-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: rocketmq-viewer-role
+rules:
+- apiGroups:
+  - addons.erda.cloud
+  resources:
+  - rocketmqs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - addons.erda.cloud
+  resources:
+  - rocketmqs/status
+  verbs:
+  - get
