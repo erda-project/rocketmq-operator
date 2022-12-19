@@ -59,6 +59,8 @@ type BrokerSpec struct {
 	PriorityClassName string `json:"priorityClassName,omitempty"`
 	// ServiceAccountName
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+	// Labels
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // BrokerStatus defines the observed state of Broker

@@ -148,6 +148,13 @@ func (r *RocketMQReconciler) serviceForBroker(rocketMQ *rocketmqv1alpha1.RocketM
 func (r *RocketMQReconciler) getBrokerStatefulSet(rocketMQ *rocketmqv1alpha1.RocketMQ) *appsv1.StatefulSet {
 	broker := rocketMQ.Spec.BrokerSpec
 	ls := labelsForBroker(broker.Name)
+	if broker.Labels == nil {
+		broker.Labels = make(map[string]string)
+	}
+	labels := broker.Labels
+	for k, v := range ls {
+		labels[k] = v
+	}
 
 	if strings.EqualFold(broker.VolumeClaimTemplates[0].Name, "") {
 		broker.VolumeClaimTemplates[0].Name = uuid.New().String()
@@ -157,6 +164,7 @@ func (r *RocketMQReconciler) getBrokerStatefulSet(rocketMQ *rocketmqv1alpha1.Roc
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      broker.Name,
 			Namespace: rocketMQ.Namespace,
+			Labels:    labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas: &broker.Size,
@@ -168,7 +176,7 @@ func (r *RocketMQReconciler) getBrokerStatefulSet(rocketMQ *rocketmqv1alpha1.Roc
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: ls,
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: broker.ServiceAccountName,

@@ -60,6 +60,8 @@ type NameServiceSpec struct {
 	PriorityClassName string `json:"priorityClassName,omitempty"`
 	// ServiceAccountName
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+	// Labels
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // NameServiceStatus defines the observed state of NameService

@@ -35,6 +35,8 @@ type ConsoleSpec struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 	// Resources describes the compute resource requirements
 	Resources corev1.ResourceRequirements `json:"resources"`
+	// Labels
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // ConsoleStatus defines the observed state of Console

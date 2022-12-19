@@ -1217,6 +1217,11 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels
+                    type: object
                   name:
                     description: Name of the broker
                     type: string
@@ -4244,6 +4249,11 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels
+                    type: object
                   name:
                     description: Name of the console
                     type: string
@@ -4321,6 +4331,7 @@ spec:
                       type: object
                     type: array
                 required:
+                - image
                 - name
                 - resources
                 type: object
@@ -5505,6 +5516,11 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels
+                    type: object
                   name:
                     description: Name of the NameService
                     type: string

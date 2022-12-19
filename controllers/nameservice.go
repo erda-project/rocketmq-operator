@@ -132,7 +132,14 @@ func labelsForNameService(name string) map[string]string {
 }
 
 func (r *RocketMQReconciler) serviceForNameService(rocketMQ *rocketmqv1alpha1.RocketMQ) *corev1.Service {
-	labels := labelsForNameService(rocketMQ.Spec.NameServiceSpec.Name)
+	ls := labelsForNameService(rocketMQ.Spec.NameServiceSpec.Name)
+	if rocketMQ.Spec.NameServiceSpec.Labels == nil {
+		rocketMQ.Spec.NameServiceSpec.Labels = make(map[string]string)
+	}
+	labels := rocketMQ.Spec.NameServiceSpec.Labels
+	for k, v := range ls {
+		labels[k] = v
+	}
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rocketMQ.Spec.NameServiceSpec.Name,
@@ -159,7 +166,14 @@ func (r *RocketMQReconciler) serviceForNameService(rocketMQ *rocketmqv1alpha1.Ro
 
 func (r *RocketMQReconciler) statefulSetForNameService(rocketMQ *rocketmqv1alpha1.RocketMQ) *appsv1.StatefulSet {
 	nameService := rocketMQ.Spec.NameServiceSpec
-	labels := labelsForNameService(nameService.Name)
+	ls := labelsForNameService(nameService.Name)
+	if nameService.Labels == nil {
+		nameService.Labels = make(map[string]string)
+	}
+	labels := nameService.Labels
+	for k, v := range ls {
+		labels[k] = v
+	}
 
 	if strings.EqualFold(nameService.VolumeClaimTemplates[0].Name, "") {
 		nameService.VolumeClaimTemplates[0].Name = uuid.New().String()
@@ -169,11 +183,12 @@ func (r *RocketMQReconciler) statefulSetForNameService(rocketMQ *rocketmqv1alpha
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      nameService.Name,
 			Namespace: rocketMQ.Namespace,
+			Labels:    labels,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas: &nameService.Size,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: ls,
 			},
 			ServiceName: nameService.Name,
 			Template: corev1.PodTemplateSpec{
