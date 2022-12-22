@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -158,6 +159,7 @@ func (r *RocketMQReconciler) deploymentForConsole(rocketMQ *rocketmqv1alpha1.Roc
 			},
 		},
 	}
+	ctrl.SetControllerReference(rocketMQ, deploy, r.Scheme)
 
 	return deploy
 }

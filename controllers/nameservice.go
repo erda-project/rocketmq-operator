@@ -160,6 +160,16 @@ func (r *RocketMQReconciler) serviceForNameService(rocketMQ *rocketmqv1alpha1.Ro
 			Selector: labels,
 		},
 	}
+	if rocketMQ.Spec.NameServiceSpec.EnableMetrics {
+		svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{
+			Name: constants.NameServiceExporterContainerPortName,
+			Port: constants.NameServiceExporterContainerPort,
+			TargetPort: intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: constants.NameServiceExporterContainerPort,
+			},
+		})
+	}
 	ctrl.SetControllerReference(rocketMQ, svc, r.Scheme)
 	return svc
 }
@@ -230,6 +240,28 @@ func (r *RocketMQReconciler) statefulSetForNameService(rocketMQ *rocketmqv1alpha
 			},
 			VolumeClaimTemplates: getVolumeClaimTemplates(&nameService),
 		},
+	}
+	if nameService.EnableMetrics {
+		dep.Spec.Template.Spec.Containers = append(dep.Spec.Template.Spec.Containers, corev1.Container{
+			Name:  "metrics",
+			Image: r.ExporterImage,
+			Env: []corev1.EnvVar{
+				{
+					Name:  constants.EnvNameServiceAddress,
+					Value: "localhost:9876",
+				},
+				{
+					Name:  "SERVER_PORT",
+					Value: "5557",
+				},
+			},
+			Ports: []corev1.ContainerPort{
+				{
+					Name:          "exporter",
+					ContainerPort: constants.NameServiceExporterContainerPort,
+				},
+			},
+		})
 	}
 	// Set RocketMQ instance as the owner and controller
 	ctrl.SetControllerReference(rocketMQ, dep, r.Scheme)

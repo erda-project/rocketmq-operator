@@ -5377,6 +5377,9 @@ spec:
                   dnsPolicy:
                     description: dnsPolicy defines how a pod's DNS will be configured
                     type: string
+                  enableMetrics:
+                    description: EnableMetrics
+                    type: boolean
                   env:
                     description: Env of the NameService
                     items:
