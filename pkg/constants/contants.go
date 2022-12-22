@@ -74,6 +74,12 @@ const (
 	// NameServiceMainContainerPort is the main port number of name server container
 	NameServiceMainContainerPort = 9876
 
+	// NameServiceExporterContainerPort is the exporter port number of name server metrics
+	NameServiceExporterContainerPort = 5557
+
+	// NameServiceExporterContainerPortName is the exporter port name of name server metrics
+	NameServiceExporterContainerPortName = "metrics"
+
 	// NameServiceMainContainerPortName is the main port name of name server container
 	NameServiceMainContainerPortName = "main"
 

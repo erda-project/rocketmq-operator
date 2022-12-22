@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -106,12 +107,20 @@ func (r *RocketMQReconciler) serviceForConsole(rocketMQ *rocketmqv1alpha1.Rocket
 func (r *RocketMQReconciler) deploymentForConsole(rocketMQ *rocketmqv1alpha1.RocketMQ) *appsv1.Deployment {
 	console := rocketMQ.Spec.ConsoleSpec
 	ls := labelsForConsole(console.Name)
+	if console.Labels == nil {
+		console.Labels = make(map[string]string)
+	}
+	labels := console.Labels
+	for k, v := range ls {
+		labels[k] = v
+	}
 
 	nameServers := getNameServers(rocketMQ.Spec.NameServiceSpec.Name, rocketMQ.Namespace, rocketMQ.Spec.NameServiceSpec.Size)
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      console.Name,
 			Namespace: rocketMQ.Namespace,
+			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &[]int32{1}[0],
@@ -120,7 +129,7 @@ func (r *RocketMQReconciler) deploymentForConsole(rocketMQ *rocketmqv1alpha1.Roc
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: ls,
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					Affinity:         console.Affinity,
@@ -150,6 +159,7 @@ func (r *RocketMQReconciler) deploymentForConsole(rocketMQ *rocketmqv1alpha1.Roc
 			},
 		},
 	}
+	ctrl.SetControllerReference(rocketMQ, deploy, r.Scheme)
 
 	return deploy
 }

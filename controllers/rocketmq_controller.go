@@ -36,6 +36,8 @@ import (
 type RocketMQReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+
+	ExporterImage string
 }
 
 //+kubebuilder:rbac:groups=addons.erda.cloud,resources=rocketmqs,verbs=get;list;watch;create;update;patch;delete
