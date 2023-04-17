@@ -20,6 +20,7 @@ import (
 	"flag"
 	"os"
 
+	"k8s.io/client-go/kubernetes"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -91,7 +92,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		setupLog.Error(err, "unable to create kubernetes client")
+		os.Exit(1)
+	}
 	if err = (&controllers.RocketMQReconciler{
+		KubeClientSet: kubeClient,
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		ExporterImage: exporterImage,

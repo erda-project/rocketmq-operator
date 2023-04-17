@@ -15,10 +15,12 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	rocketmqv1alpha1 "erda.cloud/rocketmq/api/v1alpha1"
 	"erda.cloud/rocketmq/pkg/constants"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -60,6 +62,7 @@ func (r *RocketMQReconciler) reconcileBroker(ctx context.Context, rocketMQ *rock
 			logger.Error(err, "Failed to create new Service for Broker", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
 			return err
 		}
+		return nil
 	} else if err != nil {
 		return err
 	}
@@ -67,13 +70,17 @@ func (r *RocketMQReconciler) reconcileBroker(ctx context.Context, rocketMQ *rock
 	size := rocketMQ.Spec.BrokerSpec.Size
 	nameServers := getNameServers(rocketMQ.Spec.NameServiceSpec.Name, rocketMQ.Namespace, rocketMQ.Spec.NameServiceSpec.Size)
 	nameServiceStr := getNameServiceStr(found)
-	if *found.Spec.Replicas != size || nameServiceStr != strings.Join(nameServers, ":") {
-		found.Spec.Replicas = &size
-		found.Spec.Template.Spec.Containers[0].Env = sts.Spec.Template.Spec.Containers[0].Env
-		err = r.Client.Update(ctx, found)
-		logger.Info("Updating StatefulSet", "StatefulSet.Namespace", found.Namespace, "StatefulSet.Name", found.Name)
-		if err != nil {
-			logger.Error(err, "Failed to update StatefulSet", "StatefulSet.Namespace", found.Namespace, "StatefulSet.Name", found.Name)
+	resourceDiff := cmp.Diff(found.Spec.Template.Spec.Containers[0].Resources, sts.Spec.Template.Spec.Containers[0].Resources)
+	if *found.Spec.Replicas != size || nameServiceStr != strings.Join(nameServers, ";") || resourceDiff != "" {
+		sts.Spec.VolumeClaimTemplates = found.Spec.VolumeClaimTemplates
+		for i := range sts.Spec.Template.Spec.Containers {
+			for j := range sts.Spec.Template.Spec.Containers[i].VolumeMounts {
+				sts.Spec.Template.Spec.Containers[i].VolumeMounts[j].Name = found.Spec.Template.Spec.Containers[i].VolumeMounts[j].Name
+			}
+		}
+		logger.Info("Updating StatefulSet", "StatefulSet.Namespace", sts.Namespace, "StatefulSet.Name", sts.Name)
+		if _, err := r.KubeClientSet.AppsV1().StatefulSets(sts.Namespace).Update(ctx, sts, metav1.UpdateOptions{}); err != nil {
+			logger.Error(err, "Failed to update StatefulSet", "StatefulSet.Namespace", sts.Namespace, "StatefulSet.Name", sts.Name)
 			return err
 		}
 	}
@@ -101,6 +108,7 @@ func (r *RocketMQReconciler) updateBrokerStatus(ctx context.Context, rocketMQ *r
 		rocketMQ.Status.BrokerStatus.Running = runningBrokers
 		rocketMQ.Status.BrokerStatus.Status = status
 		err = r.Client.Status().Update(ctx, rocketMQ)
+		logger.Info("Updating RocketMQ broker status")
 		if err != nil {
 			logger.Error(err, "Failed to update RocketMQ broker status")
 			return err
@@ -289,6 +297,37 @@ func getBrokerEnv(rocketMQ *rocketmqv1alpha1.RocketMQ) []corev1.EnvVar {
 	envs := make([]corev1.EnvVar, 0)
 	for k, v := range envMap {
 		envs = append(envs, corev1.EnvVar{Name: k, Value: v})
+	}
+	switch {
+	case broker.Size == 1:
+		envs = append(envs, corev1.EnvVar{
+			Name:  "BROKER_NAME",
+			Value: "broker-0",
+		}, corev1.EnvVar{
+			Name:  "CLUSTER_NAME",
+			Value: "cluster-0",
+		}, corev1.EnvVar{
+			Name:  "BROKER_ID",
+			Value: "0",
+		}, corev1.EnvVar{
+			Name:  "BROKER_ROLE",
+			Value: "ASYNC_MASTER",
+		})
+	default:
+		clusterNum := int(broker.Size / 2)
+		for i := 0; i < clusterNum; i++ {
+			for j := 0; j < 2; j++ {
+				envPrefix := fmt.Sprintf("N%d", 2*i+j)
+				brokerRole := "ASYNC_MASTER"
+				if j%2 == 1 {
+					brokerRole = "SLAVE"
+				}
+				envs = append(envs, corev1.EnvVar{Name: fmt.Sprintf("%s_BROKER_NAME", envPrefix), Value: fmt.Sprintf("broker-%d", 2*i+j)})
+				envs = append(envs, corev1.EnvVar{Name: fmt.Sprintf("%s_CLUSTER_NAME", envPrefix), Value: fmt.Sprintf("cluster-%d", i)})
+				envs = append(envs, corev1.EnvVar{Name: fmt.Sprintf("%s_BROKER_ID", envPrefix), Value: fmt.Sprintf("%d", j%2)})
+				envs = append(envs, corev1.EnvVar{Name: fmt.Sprintf("%s_BROKER_ROLE", envPrefix), Value: brokerRole})
+			}
+		}
 	}
 	return envs
 }
