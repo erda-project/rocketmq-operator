@@ -18,13 +18,16 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"erda.cloud/rocketmq/pkg/constants"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -35,7 +38,8 @@ import (
 // RocketMQReconciler reconciles a RocketMQ object
 type RocketMQReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	KubeClientSet kubernetes.Interface
+	Scheme        *runtime.Scheme
 
 	ExporterImage string
 }
@@ -73,6 +77,14 @@ func (r *RocketMQReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		rocketMQ.Status.ConditionStatus = rocketmqv1alpha1.ConditionInitializing
 	}
 
+	if rocketMQ.Spec.BrokerSpec.Size != 1 && rocketMQ.Spec.BrokerSpec.Size%2 != 0 {
+		logrus.Error(fmt.Errorf("RocketMQ: %s The number of copies of the broker is wrong and can only be a multiple of 2, invalid spec.BrokerSpec.Size", rocketMQ.Name))
+		return ctrl.Result{
+			Requeue:      true,
+			RequeueAfter: time.Second * constants.RequeueIntervalInSecond,
+		}, nil
+	}
+
 	if err := r.reconcileNameService(ctx, rocketMQ); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -89,10 +101,7 @@ func (r *RocketMQReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{
-		Requeue:      true,
-		RequeueAfter: time.Second * constants.RequeueIntervalInSecond,
-	}, nil
+	return ctrl.Result{}, nil
 }
 
 func getStatusCondition(rocketMQ *rocketmqv1alpha1.RocketMQ) rocketmqv1alpha1.ConditionStatus {
@@ -113,6 +122,8 @@ func (r *RocketMQReconciler) updateStatus(ctx context.Context, rocketMQ *rocketm
 	status := getStatusCondition(rocketMQ)
 	if status != rocketMQ.Status.ConditionStatus {
 		rocketMQ.Status.ConditionStatus = status
+		logger := log.FromContext(ctx)
+		logger.Info("Updating RocketMQ status", "status", status)
 		if err := r.Client.Status().Update(ctx, rocketMQ); err != nil {
 			return err
 		}

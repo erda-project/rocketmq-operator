@@ -65,6 +65,7 @@ func (r *RocketMQReconciler) reconcileConsole(ctx context.Context, rocketMQ *roc
 	if status != rocketMQ.Status.ConsoleStatus.Status {
 		rocketMQ.Status.ConsoleStatus.Status = status
 		err = r.Status().Update(ctx, rocketMQ)
+		logger.Info("Update RocketMQ console status")
 		if err != nil {
 			logger.Error(err, "Failed to update RocketMQ status")
 			return err

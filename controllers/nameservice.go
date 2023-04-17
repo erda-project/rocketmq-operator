@@ -21,6 +21,7 @@ import (
 
 	rocketmqv1alpha1 "erda.cloud/rocketmq/api/v1alpha1"
 	"erda.cloud/rocketmq/pkg/constants"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -65,8 +66,10 @@ func (r *RocketMQReconciler) reconcileNameService(ctx context.Context, rocketMQ 
 	}
 
 	size := rocketMQ.Spec.NameServiceSpec.Size
-	if *found.Spec.Replicas != size {
+	resourceDiff := cmp.Diff(found.Spec.Template.Spec.Containers[0].Resources, sts.Spec.Template.Spec.Containers[0].Resources)
+	if *found.Spec.Replicas != size || resourceDiff != "" {
 		found.Spec.Replicas = &size
+		found.Spec.Template.Spec.Containers[0].Resources = sts.Spec.Template.Spec.Containers[0].Resources
 		err = r.Client.Update(ctx, found)
 		logger.Info("Update NameService StatefulSet", "StatefulSet.Namespace", found.Namespace, "StatefulSet.Name", found.Name)
 		if err != nil {
@@ -101,6 +104,7 @@ func (r *RocketMQReconciler) updateNameServiceStatus(ctx context.Context, rocket
 		rocketMQ.Status.NameServiceStatus.Running = runningNameServer
 		rocketMQ.Status.NameServiceStatus.Status = status
 		err = r.Client.Status().Update(ctx, rocketMQ)
+		logger.Info("Update NameService status", "RocketMQ.Namespace", rocketMQ.Namespace, "RocketMQ.Name", rocketMQ.Name)
 		if err != nil {
 			logger.Error(err, "Failed to update RocketMQ status")
 			return err

@@ -70,7 +70,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: docker.io/zhengc/rocketmq:operator-v1alpha-1.0
+        image: registry.erda.cloud/erda-addons/rocketmq-operator:v1alpha-1.0
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
