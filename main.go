@@ -59,7 +59,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&exporterImage, "exporter-image", "registry.erda.cloud/erda-addons-enterprise/addon-rocketmq:exporter-2.0", "The image of rocketmq exporter")
+	flag.StringVar(&exporterImage, "exporter-image", "registry.erda.cloud/erda-addons-enterprise/addon-rocketmq:exporter-2.1", "The image of rocketmq exporter")
 	opts := zap.Options{
 		Development: true,
 	}
